@@ -255,6 +255,9 @@ pub struct DnsQuestion {
     pub qtype: QueryType,
 }
 
+// name
+// type: 16
+// class: 16
 impl DnsQuestion {
     pub fn new(name: String, qtype: QueryType) -> DnsQuestion {
         DnsQuestion { 
@@ -266,6 +269,7 @@ impl DnsQuestion {
     pub fn read(&mut self, buffer: &mut BytePacketBuffer) -> Result<(), String> {
         buffer.read_qname(&mut self.name)?;
         self.qtype = QueryType::from_num(buffer.read_u16()?);
+        let _ = buffer.read_u16()?;
 
         Ok(())
     }
@@ -288,13 +292,88 @@ pub enum DnsRecord {
     },
 }
 
-
+// name
+// type: 16
+// class: 16
+// ttl: 32
+// data length: 16
+// address: 
 impl DnsRecord {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<DnsRecord, String> {
         let mut domain = String::new();
         buffer.read_qname(&mut domain)?;
 
         let qtype_num = buffer.read_u16()?;
+        let qtype = QueryType::from_num(qtype_num);
+        let _ = buffer.read_u16()?;
+        let ttl = buffer.read_u32()?;
+        let data_len = buffer.read_u16()?;
 
+        match qtype {
+            QueryType::A => {
+                let raw_addr = buffer.read_u32()?;
+                let addr = Ipv4Addr::new(
+                    ((raw_addr >> 24) & 0xff) as u8,
+                    ((raw_addr >> 16) & 0xff) as u8,
+                    ((raw_addr >> 8) & 0xff) as u8,
+                    ((raw_addr >> 0) & 0xff) as u8,
+                );
+
+                Ok(DnsRecord::A { domain, addr, ttl })
+            }
+            QueryType::UNKNOWN(_) => {
+                buffer.step(data_len as usize);
+                Ok(DnsRecord::UNKNOWN { domain, qtype: qtype_num, data_len, ttl })
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DnsPacket {
+    pub header: DnsHeader,
+    pub questioins: Vec<DnsQuestion>,
+    pub answers: Vec<DnsRecord>,
+    pub authorities: Vec<DnsRecord>,
+    pub resources: Vec<DnsRecord>,
+}
+
+impl DnsPacket {
+    pub fn new() -> DnsPacket {
+        DnsPacket { 
+            header: DnsHeader::new(), 
+            questioins: Vec::new(), 
+            answers: Vec::new(), 
+            authorities: Vec::new(), 
+            resources:  Vec::new(),
+        }
+    }
+
+    pub fn from_buffer(buffer: &mut BytePacketBuffer) -> Result<DnsPacket, String> {
+        let mut result = DnsPacket::new();
+        result.header.read(buffer)?;
+
+        for _ in 0..result.header.questions {
+            let mut question = DnsQuestion::new("".to_string(), QueryType::UNKNOWN(0));
+            question.read(buffer)?;
+            result.questioins.push(question);
+        }
+
+        for _ in 0..result.header.answers {
+            let answer = DnsRecord::read(buffer)?;
+            result.answers.push(answer);
+        }
+
+        for _ in 0..result.header.authoritative_entries {
+            let rec = DnsRecord::read(buffer)?;
+            result.authorities.push(rec);
+        }
+
+        for _ in 0..result.header.resource_entries {
+            let rec = DnsRecord::read(buffer)?;
+            result.resources.push(rec);
+        }
+
+        Ok(result)
     }
 }
