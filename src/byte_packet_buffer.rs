@@ -140,8 +140,7 @@ impl BytePacketBuffer {
     }
 
     fn write_u16(&mut self, val: u16) -> Result<(), String> {
-        // probably val is a little endian
-        // the high address need to put first
+        // val is a little endian, the high address need to put first
         self.write((val >> 8) as u8)?;
         self.write((val & 0xff) as u8)?;
 
