@@ -3,7 +3,6 @@ mod server_proxy;
 
 use std::net::UdpSocket;
 
-
 // fn main() -> Result<(), Box<dyn std::error::Error>> {
 //     let mut f = File::open("response_packet.txt")?;
 //     let mut buffer = BytePacketBuffer::new();
@@ -20,7 +19,7 @@ use std::net::UdpSocket;
 //     for rec in packet.answers {
 //         println!("{:#?}", rec)
 //     }
-    
+
 //     for rec in packet.authorities {
 //         println!("{:#?}", rec)
 //     }
@@ -32,13 +31,11 @@ use std::net::UdpSocket;
 //     Ok(())
 // }
 
-
 // fn main() -> Result<(), Box<dyn std::error::Error>> {
 //     let mut f = File::open("query_packet.txt")?;
 //     let mut q_buffer = BytePacketBuffer::new();
 //     let size = f.read(&mut q_buffer.buf)?;
 //     println!("{:02x?}", &q_buffer.buf[0..size]);
-
 
 //     let d = DnsPacket::from_buffer(&mut q_buffer)?;
 //     println!("{:#?}", d);
@@ -126,13 +123,13 @@ use std::net::UdpSocket;
 // nc -u -l 1053 > query_packet.txt
 // nc -u 8.8.8.8 53 < query_packet.txt > response_packet.txt
 
-fn main() -> Result<(), Box<dyn std::error::Error>>{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let socket = UdpSocket::bind(("0.0.0.0", 2053))?;
 
     loop {
         match server_proxy::handle_query(&socket) {
             Ok(_) => {}
-            Err(e) => eprintln!("An error occurred: {}", e)
+            Err(e) => eprintln!("An error occurred: {}", e),
         }
     }
 }
