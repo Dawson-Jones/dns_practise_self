@@ -1,8 +1,7 @@
 mod byte_packet_buffer;
+mod server_proxy;
 
-use std::{io, net::UdpSocket};
-
-use byte_packet_buffer::{BytePacketBuffer, QueryType, DnsPacket, DnsQuestion};
+use std::net::UdpSocket;
 
 
 // fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -74,54 +73,66 @@ use byte_packet_buffer::{BytePacketBuffer, QueryType, DnsPacket, DnsQuestion};
 //     Ok(())
 // }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // let qname = "www.yahoo.com";
-    // let qtype = QueryType::A;
-    let qname = "yahoo.com";
-    let qtype = QueryType::MX;
+// fn main() -> Result<(), Box<dyn std::error::Error>> {
+//     // let qname = "www.yahoo.com";
+//     // let qtype = QueryType::A;
+//     let qname = "yahoo.com";
+//     let qtype = QueryType::MX;
 
-    let server = ("8.8.8.8", 53);
+//     let server = ("8.8.8.8", 53);
 
-    let cli = UdpSocket::bind(("0.0.0.0", 43210))?;
+//     let cli = UdpSocket::bind(("0.0.0.0", 43210))?;
 
-    let mut packet = DnsPacket::new();
-    packet.header.id = 12745;
-    packet.header.questions = 1;
-    packet.header.recursion_desired = true;
-    packet.header.authed_data = true;
-    packet.questioins.push(DnsQuestion::new(qname.to_string(), qtype));
+//     let mut packet = DnsPacket::new();
+//     packet.header.id = 12745;
+//     packet.header.questions = 1;
+//     packet.header.recursion_desired = true;
+//     packet.header.authed_data = true;
+//     packet.questioins.push(DnsQuestion::new(qname.to_string(), qtype));
 
-    let mut req_buffer = BytePacketBuffer::new();
-    packet.write(&mut req_buffer)?;
+//     let mut req_buffer = BytePacketBuffer::new();
+//     packet.write(&mut req_buffer)?;
 
-    // println!("{:#?}", packet);
-    // println!("{:02x?}", req_buffer.buf);
+//     println!("{:#?}", packet);
+//     println!("-------------------------");
+//     // println!("{:02x?}", req_buffer.buf);
 
-    let _s = cli.send_to(&req_buffer.buf[0..req_buffer.pos], server);
+//     let _s = cli.send_to(&req_buffer.buf[0..req_buffer.pos], server);
 
-    let mut res_buffer = BytePacketBuffer::new();
-    let _r = cli.recv_from(&mut res_buffer.buf)?;
-    // println!("{:02x?}", res_buffer.buf);
+//     let mut res_buffer = BytePacketBuffer::new();
+//     let _r = cli.recv_from(&mut res_buffer.buf)?;
+//     // println!("{:02x?}", res_buffer.buf);
 
-    let res_packet = DnsPacket::from_buffer(&mut res_buffer)?;
-    println!("{:#?}", res_packet.header);
+//     let res_packet = DnsPacket::from_buffer(&mut res_buffer)?;
+//     println!("{:#?}", res_packet.header);
 
-    for q in res_packet.questioins {
-        println!("{:#?}", q);
-    }
+//     for q in res_packet.questioins {
+//         println!("{:#?}", q);
+//     }
 
-    for rec in res_packet.answers {
-        println!("{:#?}", rec);
-    }
-    for rec in res_packet.authorities {
-        println!("{:#?}", rec);
-    }
-    for rec in res_packet.resources {
-        println!("{:#?}", rec);
-    }
+//     for rec in res_packet.answers {
+//         println!("{:#?}", rec);
+//     }
+//     for rec in res_packet.authorities {
+//         println!("{:#?}", rec);
+//     }
+//     for rec in res_packet.resources {
+//         println!("{:#?}", rec);
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 // nc -u -l 1053 > query_packet.txt
 // nc -u 8.8.8.8 53 < query_packet.txt > response_packet.txt
+
+fn main() -> Result<(), Box<dyn std::error::Error>>{
+    let socket = UdpSocket::bind(("0.0.0.0", 2053))?;
+
+    loop {
+        match server_proxy::handle_query(&socket) {
+            Ok(_) => {}
+            Err(e) => eprintln!("An error occurred: {}", e)
+        }
+    }
+}

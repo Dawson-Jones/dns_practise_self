@@ -16,7 +16,7 @@ impl BytePacketBuffer {
         }
     }
 
-    fn pos(&self) -> usize {
+    pub fn pos(&self) -> usize {
         self.pos
     }
 
@@ -46,7 +46,7 @@ impl BytePacketBuffer {
         Ok(self.buf[pos])
     }
 
-    fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8]> {
+    pub fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8]> {
         if start + len >= 512 {
             return Err("End of buffer".into());
         }
@@ -486,8 +486,6 @@ impl DnsRecord {
                 let priority = buffer.read_u16()?;
                 let mut host = String::new();
                 buffer.read_qname(&mut host)?;
-
-                println!("----------return MX: priority: {}", priority);
 
                 Ok(DnsRecord::MX { domain, priority, host, ttl })
             },
